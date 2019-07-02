@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: logging
+  labels:
+    k8s-app: fluent-bit
+data:
+  # Configuration files: server, input, filters and output
+  # ======================================================
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush              1
+        Log_Level          info
+        Daemon             off
+        HTTP_Server        On
+        HTTP_Listen        0.0.0.0
+        HTTP_Port          2020
+
+    @INCLUDE input-kubernetes.conf
+    @INCLUDE filter-kubernetes.conf
+    @INCLUDE output-elasticsearch.conf
+
+  input-kubernetes.conf: |
+    [INPUT]
+        Name                systemd
+        Tag                 kube_systemd.*
+        Path                /run/log/journal
+        DB                  /var/log/flb_kube_systemd.db
+        Systemd_Filter      _SYSTEMD_UNIT=docker.service
+        Read_From_Tail      On
+        Strip_Underscores   On
+
+  filter-kubernetes.conf: |
+    [FILTER]
+        Name                kubernetes
+        Match               kube_systemd.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Annotations         On
+        Labels              On
+        Merge_Log           On
+        K8S-Logging.Parser  On
+        Use_Journal         On
+    
+  output-elasticsearch.conf: |
+    [OUTPUT]
+        Name                es
+        Match               *
+        Host                elasticsearch.prod.int.com
+        Port                9200
+        Index               k8s-lab

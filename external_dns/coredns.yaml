@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: coredns
+  namespace: dns
+spec:
+  ports:
+  - name: coredns
+    port: 53
+    protocol: UDP
+    targetPort: 53
+  selector:
+    app: coredns
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: dns
+data:
+  Corefile: |
+    . {
+        errors
+        log
+        health
+        debug
+        etcd {
+           endpoint http://etcd-dns:2379
+        }
+        cache 30
+        prometheus 0.0.0.0:9153
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: dns
+  labels:
+    app: coredns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: coredns
+  template:
+    metadata:
+      labels:
+        app: coredns
+        k8s_app: kube-dns
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9153"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+      - name: coredns
+        image: coredns/coredns:latest
+        imagePullPolicy: IfNotPresent
+        args: [ "-conf", "/etc/coredns/Corefile" ]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/coredns
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 9153
+          name: metrics
+          protocol: TCP
+      volumes:
+      - name: config-volume
+        configMap:
+          name: coredns
+          items:
+          - key: Corefile
+            path: Corefile
