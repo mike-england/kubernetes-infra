@@ -23,6 +23,8 @@ spec:
         prometheus.io/port: "2020"
         prometheus.io/path: /api/v1/metrics/prometheus
     spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       containers:
       - name: fluent-bit
         image: fluent/fluent-bit:1.1.1

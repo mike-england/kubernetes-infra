@@ -15,6 +15,8 @@ spec:
       labels:
         k8s-app: kube-state-metrics
     spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       serviceAccountName: kube-state-metrics
       containers:
       - name: kube-state-metrics

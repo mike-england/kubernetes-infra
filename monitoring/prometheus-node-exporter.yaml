@@ -23,6 +23,8 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+      nodeSelector:
+        beta.kubernetes.io/os: linux
       containers:
         - name: prometheus-node-exporter
           image: prom/node-exporter:v0.18.1
